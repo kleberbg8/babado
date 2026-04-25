@@ -2,6 +2,7 @@
 const nextConfig = {
   images: {
     remotePatterns: [
+      { protocol: 'https', hostname: 'gatasdobabado.com.br' },
       { protocol: 'https', hostname: 'cdn.gatadobabado.com.br' },
       { protocol: 'https', hostname: '**.r2.cloudflarestorage.com' },
       { protocol: 'https', hostname: '**.cloudflare.com' },

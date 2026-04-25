@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { MessageCircle, ExternalLink } from 'lucide-react'
 
 const Instagram = ExternalLink
@@ -114,10 +115,19 @@ export default function Footer() {
 
         {/* Bottom */}
         <div className="pt-8 border-t border-[rgba(233,30,140,0.1)] flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex flex-col items-center md:items-start gap-1">
-            <span className="font-display text-lg font-bold text-white">
-              Gatas do <span className="italic text-[#E91E8C]">Babado</span>
-            </span>
+          <div className="flex flex-col items-center md:items-start gap-2">
+            <div className="flex items-center gap-2">
+              <Image
+                src="https://gatasdobabado.com.br/wp-content/uploads/2021/08/logo.webp"
+                alt="Gatas do Babado"
+                width={32}
+                height={32}
+                className="h-8 w-auto"
+              />
+              <span className="font-display text-lg font-bold text-white">
+                Gatas do <span className="italic text-[#E91E8C]">Babado</span>
+              </span>
+            </div>
             <p className="text-xs text-[#7A5665]">
               CNPJ: 00.000.000/0001-00 — Plataforma de anúncios de acompanhantes adultos
             </p>

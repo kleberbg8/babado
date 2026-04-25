@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Bell, Menu, X, LogIn, UserPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -33,7 +34,15 @@ export default function Navbar() {
       <div className="max-content flex items-center justify-between h-16">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <span className="font-display text-xl font-bold text-white">
+          <Image
+            src="https://gatasdobabado.com.br/wp-content/uploads/2021/08/logo.webp"
+            alt="Gatas do Babado"
+            width={40}
+            height={40}
+            priority
+            className="h-10 w-auto"
+          />
+          <span className="font-display text-xl font-bold text-white hidden sm:inline">
             Gatas do{' '}
             <span className="italic text-[#E91E8C]">Babado</span>
           </span>

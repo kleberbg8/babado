@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import NextImage from 'next/image'
 import {
   LayoutDashboard,
   Clock,
@@ -36,10 +37,19 @@ export default function AdminSidebar() {
     <aside className="w-64 shrink-0 bg-[#130E11] border-r border-[rgba(233,30,140,0.15)] min-h-screen sticky top-0">
       <div className="p-6 border-b border-[rgba(233,30,140,0.15)]">
         <Link href="/" className="block">
-          <span className="font-display text-lg font-bold text-white">
-            Gatas do <span className="italic text-[#E91E8C]">Babado</span>
-          </span>
-          <p className="text-xs text-[#7A5665] mt-0.5">Painel Administrativo</p>
+          <div className="flex items-center gap-2 mb-2">
+            <NextImage
+              src="https://gatasdobabado.com.br/wp-content/uploads/2021/08/logo.webp"
+              alt="Gatas do Babado"
+              width={28}
+              height={28}
+              className="h-7 w-auto"
+            />
+            <span className="font-display text-lg font-bold text-white">
+              Gatas do <span className="italic text-[#E91E8C]">Babado</span>
+            </span>
+          </div>
+          <p className="text-xs text-[#7A5665]">Painel Administrativo</p>
         </Link>
       </div>
 
