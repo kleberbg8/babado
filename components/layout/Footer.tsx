@@ -120,13 +120,10 @@ export default function Footer() {
               <Image
                 src="https://gatasdobabado.com.br/wp-content/uploads/2021/08/logo.webp"
                 alt="Gatas do Babado"
-                width={32}
+                width={144}
                 height={32}
                 className="h-8 w-auto"
               />
-              <span className="font-display text-lg font-bold text-white">
-                Gatas do <span className="italic text-[#E91E8C]">Babado</span>
-              </span>
             </div>
             <p className="text-xs text-[#7A5665]">
               CNPJ: 00.000.000/0001-00 — Plataforma de anúncios de acompanhantes adultos

@@ -37,15 +37,11 @@ export default function Navbar() {
           <Image
             src="https://gatasdobabado.com.br/wp-content/uploads/2021/08/logo.webp"
             alt="Gatas do Babado"
-            width={40}
+            width={180}
             height={40}
             priority
             className="h-10 w-auto"
           />
-          <span className="font-display text-xl font-bold text-white hidden sm:inline">
-            Gatas do{' '}
-            <span className="italic text-[#E91E8C]">Babado</span>
-          </span>
         </Link>
 
         {/* Desktop Nav */}
