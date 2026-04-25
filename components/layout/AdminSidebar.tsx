@@ -14,6 +14,7 @@ import {
   FileText,
   Shield,
   BarChart3,
+  Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -22,6 +23,7 @@ const adminNav = [
   { href: '/admin/aprovacoes', label: 'Aprovações', icon: Clock, badge: true },
   { href: '/admin/modelos', label: 'Modelos', icon: Users },
   { href: '/admin/midias', label: 'Moderação de Mídias', icon: Image },
+  { href: '/admin/destaques', label: 'Destaques & Ranking', icon: Sparkles },
   { href: '/admin/usuarios', label: 'Usuários', icon: Shield },
   { href: '/admin/planos', label: 'Planos', icon: CreditCard },
   { href: '/admin/financeiro', label: 'Financeiro', icon: DollarSign },
