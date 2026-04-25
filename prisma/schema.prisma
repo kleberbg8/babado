@@ -1,0 +1,469 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  VISITOR
+  MODEL
+  MODERATOR
+  ADMIN
+}
+
+enum ModelStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum PlanType {
+  FREE
+  SILVER
+  GOLD
+  ELITE
+}
+
+enum ServiceType {
+  LOCAL
+  OUTCALL
+  BOTH
+  TRAVEL
+}
+
+enum MediaType {
+  PHOTO
+  VIDEO
+  STORY
+  COMPARISON
+}
+
+enum MediaStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+}
+
+enum ModerationAction {
+  APPROVE
+  REJECT
+  SUSPEND
+  BAN
+}
+
+enum ModerationTarget {
+  MODEL
+  MEDIA
+  REVIEW
+}
+
+enum CoinTransactionType {
+  PURCHASE
+  SPEND
+  GIFT_RECEIVED
+  WITHDRAWAL
+}
+
+enum CoinTransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
+enum ServiceMode {
+  DO
+  RECEIVE
+  BOTH
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  role      UserRole @default(VISITOR)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  model              Model?
+  favorites          Favorite[]
+  weeklyVotes        WeeklyVote[]
+  reviews            Review[]
+  questions          Question[]
+  coinBalance        CoinBalance?
+  coinTransactions   CoinTransaction[]
+  payments           Payment[]
+  moderationLogs     ModerationLog[]
+  auditLogs          AuditLog[]
+
+  @@map("users")
+}
+
+model Model {
+  id     String @id @default(cuid())
+  userId String @unique @map("user_id")
+  slug   String @unique
+
+  stageName  String  @map("stage_name")
+  realName   String? @map("real_name")
+
+  gender      String?
+  genital     String?
+  sexualPref  String? @map("sexual_pref")
+
+  age       Int?
+  weight    Float?
+  height    Float?
+  ethnicity String?
+  eyeColor  String? @map("eye_color")
+  hairStyle String? @map("hair_style")
+  hairSize  String? @map("hair_size")
+
+  hasSilicone Boolean? @map("has_silicone")
+  hasTattoo   Boolean? @map("has_tattoo")
+  smokes      Boolean?
+  languages   String[] @default([])
+
+  bio String? @db.Text
+
+  city         String
+  state        String
+  neighborhood String?
+  serviceType  ServiceType @default(LOCAL) @map("service_type")
+
+  whatsapp String?
+  email    String?
+
+  priceMin   Float?  @map("price_min")
+  priceTable Json?   @map("price_table")
+
+  status         ModelStatus @default(PENDING)
+  plan           PlanType    @default(FREE)
+  planExpiresAt  DateTime?   @map("plan_expires_at")
+
+  verifiedAt DateTime? @map("verified_at")
+  verifiedBy String?   @map("verified_by")
+
+  viewCount     Int   @default(0) @map("view_count")
+  favoriteCount Int   @default(0) @map("favorite_count")
+  score         Float @default(0)
+
+  isOnline   Boolean  @default(false) @map("is_online")
+  lastSeenAt DateTime? @map("last_seen_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  medias        Media[]
+  services      ModelService[]
+  availability  Availability[]
+  reviews       Review[]
+  questions     Question[]
+  favorites     Favorite[]
+  weeklyVotes   WeeklyVote[]
+  subscriptions Subscription[]
+  withdrawals   Withdrawal[]
+
+  @@map("models")
+}
+
+model Media {
+  id      String    @id @default(cuid())
+  modelId String    @map("model_id")
+
+  type         MediaType
+  url          String
+  thumbnailUrl String?   @map("thumbnail_url")
+
+  isFace    Boolean @default(false) @map("is_face")
+  isPremium Boolean @default(false) @map("is_premium")
+  isMain    Boolean @default(false) @map("is_main")
+
+  orderIndex Int @default(0) @map("order_index")
+
+  status       MediaStatus @default(PENDING)
+  rejectReason String?     @map("reject_reason")
+
+  expiresAt  DateTime? @map("expires_at")
+  sizeBytes  Int?      @map("size_bytes")
+  durationSecs Float?  @map("duration_secs")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  model Model @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@map("medias")
+}
+
+model Service {
+  id       String @id @default(cuid())
+  name     String
+  category String
+  icon     String?
+
+  modelServices ModelService[]
+
+  @@map("services")
+}
+
+model ModelService {
+  modelId     String      @map("model_id")
+  serviceId   String      @map("service_id")
+  mode        ServiceMode @default(BOTH)
+  isSpecialty Boolean     @default(false) @map("is_specialty")
+
+  model   Model   @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([modelId, serviceId])
+  @@map("model_services")
+}
+
+model Availability {
+  id        String  @id @default(cuid())
+  modelId   String  @map("model_id")
+  weekday   Int
+  startTime String  @map("start_time")
+  endTime   String  @map("end_time")
+  isAvailable Boolean @default(true) @map("is_available")
+
+  model Model @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@map("availability")
+}
+
+model Review {
+  id      String @id @default(cuid())
+  modelId String @map("model_id")
+  userId  String @map("user_id")
+
+  rating  Int
+  comment String? @db.Text
+  status  ReviewStatus @default(PENDING)
+
+  helpfulCount   Int @default(0) @map("helpful_count")
+  unhelpfulCount Int @default(0) @map("unhelpful_count")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  model Model @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+model Question {
+  id      String @id @default(cuid())
+  modelId String @map("model_id")
+  userId  String @map("user_id")
+
+  question     String  @db.Text
+  answer       String? @db.Text
+  helpfulCount Int     @default(0) @map("helpful_count")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  model Model @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("questions")
+}
+
+model Favorite {
+  userId  String @map("user_id")
+  modelId String @map("model_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  model Model @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@id([userId, modelId])
+  @@map("favorites")
+}
+
+model WeeklyVote {
+  userId     String @map("user_id")
+  modelId    String @map("model_id")
+  weekNumber Int    @map("week_number")
+  year       Int
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  model Model @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@id([userId, modelId, weekNumber, year])
+  @@map("weekly_votes")
+}
+
+model CoinPackage {
+  id       String  @id @default(cuid())
+  name     String
+  coins    Int
+  priceBrl Float   @map("price_brl")
+  isActive Boolean @default(true) @map("is_active")
+
+  @@map("coin_packages")
+}
+
+model CoinTransaction {
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+
+  type        CoinTransactionType
+  coins       Int
+  amountBrl   Float?  @map("amount_brl")
+  description String?
+  referenceId String? @map("reference_id")
+  status      CoinTransactionStatus @default(PENDING)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("coin_transactions")
+}
+
+model CoinBalance {
+  userId  String @id @map("user_id")
+  balance Int    @default(0)
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("coin_balances")
+}
+
+model Plan {
+  id           String  @id @default(cuid())
+  name         String
+  priceMonthly Float   @map("price_monthly")
+  features     Json
+  isActive     Boolean @default(true) @map("is_active")
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id      String @id @default(cuid())
+  modelId String @map("model_id")
+  planId  String @map("plan_id")
+
+  status    SubscriptionStatus @default(ACTIVE)
+  startsAt  DateTime           @map("starts_at")
+  expiresAt DateTime           @map("expires_at")
+  paymentId String?            @map("payment_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  model Model @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  plan  Plan  @relation(fields: [planId], references: [id])
+
+  @@map("subscriptions")
+}
+
+model Payment {
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+
+  type      String
+  amountBrl Float         @map("amount_brl")
+  status    PaymentStatus @default(PENDING)
+  gateway   String        @default("MERCADO_PAGO")
+
+  gatewayId   String? @map("gateway_id")
+  gatewayData Json?   @map("gateway_data")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model Withdrawal {
+  id      String @id @default(cuid())
+  modelId String @map("model_id")
+
+  amountBrl  Float  @map("amount_brl")
+  coins      Int
+  pixKey     String @map("pix_key")
+  pixKeyType String @map("pix_key_type")
+
+  status     WithdrawalStatus @default(PENDING)
+  approvedBy String?          @map("approved_by")
+  paidAt     DateTime?        @map("paid_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  model Model @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@map("withdrawals")
+}
+
+model ModerationLog {
+  id          String @id @default(cuid())
+  moderatorId String @map("moderator_id")
+
+  targetType ModerationTarget
+  targetId   String           @map("target_id")
+  action     ModerationAction
+  reason     String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  moderator User @relation(fields: [moderatorId], references: [id])
+
+  @@map("moderation_logs")
+}
+
+model AuditLog {
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+
+  action     String
+  entityType String @map("entity_type")
+  entityId   String @map("entity_id")
+  metadata   Json?
+  ip         String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
