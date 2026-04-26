@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, ShieldOff, Ban, Eye, ChevronDown, MapPin, Star, CheckCircle } from 'lucide-react'
+import { Search, ShieldOff, Ban, Eye, ChevronDown, MapPin, Star, CheckCircle, Plus, X, Edit2, Save } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 
@@ -46,12 +46,17 @@ const PLAN_COLOR: Record<string, string> = {
   ELITE: 'text-[#E91E8C]',
 }
 
+const EMPTY_FORM = { name: '', email: '', whatsapp: '', city: '', state: '', plan: 'FREE' as const }
+
 export default function ModelosPage() {
   const [models, setModels] = useState<Model[]>(MOCK)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | Status>('all')
   const [filterPlan, setFilterPlan] = useState<'all' | string>('all')
   const [actionMenu, setActionMenu] = useState<string | null>(null)
+  const [showCadastro, setShowCadastro] = useState(false)
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [saving, setSaving] = useState(false)
 
   const filtered = models.filter((m) => {
     const matchSearch = m.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -61,18 +66,54 @@ export default function ModelosPage() {
     return matchSearch && matchStatus && matchPlan
   })
 
+  const pendingCount = models.filter((m) => m.status === 'PENDING').length
+
   const updateStatus = (id: string, status: Status) => {
     setModels((prev) => prev.map((m) => m.id === id ? { ...m, status } : m))
     setActionMenu(null)
   }
 
+  const handleCadastro = async () => {
+    if (!form.name || !form.email || !form.city || !form.state) return
+    setSaving(true)
+    await new Promise((r) => setTimeout(r, 800))
+    const newModel: Model = {
+      id: String(Date.now()),
+      name: form.name,
+      city: form.city,
+      state: form.state,
+      plan: form.plan,
+      status: 'PENDING',
+      score: 0,
+      joinedAt: new Date().toLocaleDateString('pt-BR'),
+      isVerified: false,
+      photoCount: 0,
+      views: 0,
+    }
+    setModels((p) => [newModel, ...p])
+    setForm(EMPTY_FORM)
+    setShowCadastro(false)
+    setSaving(false)
+  }
+
   return (
     <div className="p-6 md:p-8">
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-white mb-1">
-          Gestão de <span className="italic text-[#E91E8C]">Modelos</span>
-        </h1>
-        <p className="text-sm text-[#7A5665]">{models.length} modelos cadastradas</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-white mb-1">
+            Gestão de <span className="italic text-[#E91E8C]">Modelos</span>
+          </h1>
+          <p className="text-sm text-[#7A5665]">
+            {models.length} modelos cadastradas
+            {pendingCount > 0 && <span className="ml-2 px-2 py-0.5 rounded-full bg-[rgba(232,184,75,0.15)] text-[#E8B84B] text-xs font-semibold">{pendingCount} pendentes</span>}
+          </p>
+        </div>
+        <button
+          onClick={() => setShowCadastro(true)}
+          className="btn-primary flex items-center gap-2 text-sm py-2 px-4"
+        >
+          <Plus size={15} /> Cadastrar Modelo
+        </button>
       </div>
 
       {/* Filters */}
@@ -116,10 +157,8 @@ export default function ModelosPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[rgba(255,255,255,0.06)]">
-                {['Modelo', 'Localização', 'Plano', 'Status', 'Avaliação', 'Fotos', 'Visualizações', 'Cadastro', ''].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-[#7A5665] uppercase tracking-wider">
-                    {h}
-                  </th>
+                {['Modelo', 'Localização', 'Plano', 'Status', 'Avaliação', 'Fotos', 'Visualizações', 'Cadastro', 'Ações'].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-[#7A5665] uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -133,18 +172,15 @@ export default function ModelosPage() {
                         <div className="w-8 h-8 rounded-full bg-[rgba(233,30,140,0.15)] flex items-center justify-center text-[#E91E8C] font-bold text-sm shrink-0">
                           {model.name[0]}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-medium text-[#F8F0F4]">{model.name}</span>
-                            {model.isVerified && <CheckCircle size={12} className="text-green-400" />}
-                          </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium text-[#F8F0F4]">{model.name}</span>
+                          {model.isVerified && <CheckCircle size={12} className="text-green-400" />}
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <span className="flex items-center gap-1 text-[#BFA0AB]">
-                        <MapPin size={11} />
-                        {model.city}, {model.state}
+                        <MapPin size={11} />{model.city}, {model.state}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -154,26 +190,25 @@ export default function ModelosPage() {
                       <span className={`badge ${S.className}`}>{S.label}</span>
                     </td>
                     <td className="px-4 py-3">
-                      {model.score > 0 ? (
-                        <span className="flex items-center gap-1 text-[#E8B84B]">
-                          <Star size={11} className="fill-current" />
-                          {model.score}
-                        </span>
-                      ) : (
-                        <span className="text-[#7A5665]">—</span>
-                      )}
+                      {model.score > 0
+                        ? <span className="flex items-center gap-1 text-[#E8B84B]"><Star size={11} className="fill-current" />{model.score}</span>
+                        : <span className="text-[#7A5665]">—</span>}
                     </td>
                     <td className="px-4 py-3 text-[#BFA0AB]">{model.photoCount}</td>
                     <td className="px-4 py-3 text-[#BFA0AB]">{model.views.toLocaleString('pt-BR')}</td>
                     <td className="px-4 py-3 text-[#7A5665]">{model.joinedAt}</td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 relative">
+                      <div className="flex items-center gap-1">
+                        {/* Ver perfil completo */}
                         <Link
-                          href={`/acompanhante/${model.id}/${model.name.toLowerCase().replace(/\s+/g, '-')}`}
-                          className="p-1.5 rounded text-[#7A5665] hover:text-white hover:bg-[#201519] transition-all"
+                          href={`/admin/modelos/${model.id}`}
+                          className="flex items-center gap-1 px-2 py-1.5 rounded text-[#BFA0AB] hover:text-white hover:bg-[#201519] text-xs font-semibold transition-all"
+                          title="Ver detalhes"
                         >
-                          <Eye size={14} />
+                          <Eye size={13} /> Ver
                         </Link>
+
+                        {/* Ações rápidas */}
                         <div className="relative">
                           <button
                             onClick={() => setActionMenu(actionMenu === model.id ? null : model.id)}
@@ -182,25 +217,29 @@ export default function ModelosPage() {
                             Ações <ChevronDown size={11} />
                           </button>
                           {actionMenu === model.id && (
-                            <div className="absolute right-0 top-full mt-1 z-20 w-40 card border border-[rgba(255,255,255,0.1)] shadow-xl">
-                              <button
-                                onClick={() => updateStatus(model.id, 'ACTIVE')}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-green-400 hover:bg-[#201519] transition-colors text-left"
+                            <div className="absolute right-0 top-full mt-1 z-20 w-44 card border border-[rgba(255,255,255,0.1)] shadow-xl">
+                              <Link
+                                href={`/admin/modelos/${model.id}?tab=editar`}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#BFA0AB] hover:bg-[#201519] transition-colors text-left"
+                                onClick={() => setActionMenu(null)}
                               >
-                                <CheckCircle size={12} /> Ativar
-                              </button>
-                              <button
-                                onClick={() => updateStatus(model.id, 'SUSPENDED')}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-orange-400 hover:bg-[#201519] transition-colors text-left"
-                              >
-                                <ShieldOff size={12} /> Suspender
-                              </button>
-                              <button
-                                onClick={() => updateStatus(model.id, 'BANNED')}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-[#201519] transition-colors text-left"
-                              >
-                                <Ban size={12} /> Banir
-                              </button>
+                                <Edit2 size={12} /> Editar Perfil
+                              </Link>
+                              {model.status !== 'ACTIVE' && (
+                                <button onClick={() => updateStatus(model.id, 'ACTIVE')} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-green-400 hover:bg-[#201519] transition-colors text-left">
+                                  <CheckCircle size={12} /> Ativar
+                                </button>
+                              )}
+                              {model.status !== 'SUSPENDED' && (
+                                <button onClick={() => updateStatus(model.id, 'SUSPENDED')} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-orange-400 hover:bg-[#201519] transition-colors text-left">
+                                  <ShieldOff size={12} /> Suspender
+                                </button>
+                              )}
+                              {model.status !== 'BANNED' && (
+                                <button onClick={() => updateStatus(model.id, 'BANNED')} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-[#201519] transition-colors text-left">
+                                  <Ban size={12} /> Banir
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -216,6 +255,101 @@ export default function ModelosPage() {
           <div className="text-center py-12 text-[#7A5665] text-sm">Nenhuma modelo encontrada</div>
         )}
       </div>
+
+      {/* Modal Cadastrar Modelo */}
+      {showCadastro && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="card w-full max-w-lg p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-display text-lg font-bold text-white">Cadastrar Nova Modelo</h2>
+              <button onClick={() => setShowCadastro(false)} className="text-[#7A5665] hover:text-white transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className="block text-xs text-[#7A5665] mb-1">Nome artístico *</label>
+                  <input
+                    value={form.name}
+                    onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                    placeholder="Nome que vai aparecer no perfil"
+                    className="input-field w-full py-2 text-sm"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs text-[#7A5665] mb-1">Email *</label>
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                    placeholder="email@exemplo.com"
+                    className="input-field w-full py-2 text-sm"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs text-[#7A5665] mb-1">WhatsApp</label>
+                  <input
+                    value={form.whatsapp}
+                    onChange={(e) => setForm((p) => ({ ...p, whatsapp: e.target.value }))}
+                    placeholder="(11) 99999-9999"
+                    className="input-field w-full py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-[#7A5665] mb-1">Cidade *</label>
+                  <input
+                    value={form.city}
+                    onChange={(e) => setForm((p) => ({ ...p, city: e.target.value }))}
+                    placeholder="São Paulo"
+                    className="input-field w-full py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-[#7A5665] mb-1">Estado *</label>
+                  <input
+                    value={form.state}
+                    onChange={(e) => setForm((p) => ({ ...p, state: e.target.value }))}
+                    placeholder="SP"
+                    maxLength={2}
+                    className="input-field w-full py-2 text-sm uppercase"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs text-[#7A5665] mb-1">Plano inicial</label>
+                  <select
+                    value={form.plan}
+                    onChange={(e) => setForm((p) => ({ ...p, plan: e.target.value as typeof form.plan }))}
+                    className="input-field w-full py-2 text-sm"
+                  >
+                    <option value="FREE">Free</option>
+                    <option value="SILVER">Silver</option>
+                    <option value="GOLD">Gold</option>
+                    <option value="ELITE">Elite</option>
+                  </select>
+                </div>
+              </div>
+
+              <p className="text-xs text-[#7A5665]">O cadastro será criado com status <strong className="text-[#E8B84B]">Pendente</strong> e a modelo receberá um email para completar o perfil.</p>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={handleCadastro}
+                  disabled={saving || !form.name || !form.email || !form.city || !form.state}
+                  className="btn-primary flex items-center gap-2 text-sm py-2 px-5 disabled:opacity-50"
+                >
+                  <Save size={14} />
+                  {saving ? 'Cadastrando...' : 'Cadastrar'}
+                </button>
+                <button onClick={() => setShowCadastro(false)} className="px-4 py-2 rounded-lg text-[#7A5665] hover:text-white hover:bg-[#201519] text-sm transition-all">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
