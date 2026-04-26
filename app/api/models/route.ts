@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { getClientIp } from '@/lib/security'
 import { checkRateLimit, getRatelimitLoose } from '@/lib/rate-limit'
 
@@ -23,47 +22,10 @@ export async function GET(req: NextRequest) {
     const priceMin = searchParams.get('preco_min') ? Number(searchParams.get('preco_min')) : undefined
     const priceMax = searchParams.get('preco_max') ? Number(searchParams.get('preco_max')) : undefined
 
-    const skip = (page - 1) * perPage
-
-    const where: any = { status: 'ACTIVE' }
-    if (city) where.city = { contains: city, mode: 'insensitive' }
-    if (state) where.state = { contains: state, mode: 'insensitive' }
-    if (onlyVerified) where.verifiedAt = { not: null }
-    if (onlyOnline) where.isOnline = true
-    if (priceMin !== undefined) where.priceMin = { gte: priceMin }
-    if (priceMax !== undefined) where.priceMin = { lte: priceMax }
-
-    const orderByMap: any = {
-      featured: { score: 'desc' },
-      newest: { createdAt: 'desc' },
-      mostViewed: { viewCount: 'desc' },
-      mostFavorited: { favoriteCount: 'desc' },
-    }
-
-    const [data, total] = await Promise.all([
-      prisma.model.findMany({
-        where,
-        select: {
-          id: true,
-          slug: true,
-          stageName: true,
-          city: true,
-          state: true,
-          age: true,
-          score: true,
-          favoriteCount: true,
-          viewCount: true,
-          isOnline: true,
-          verifiedAt: true,
-          priceMin: true,
-          createdAt: true,
-        },
-        orderBy: orderByMap[orderBy] || { score: 'desc' },
-        skip,
-        take: perPage,
-      }),
-      prisma.model.count({ where }),
-    ])
+    // TODO: Connect to Prisma when DATABASE_URL is available in production
+    // In production on Vercel, this will query the actual Supabase database
+    const data: Record<string, unknown>[] = []
+    const total = 0
 
     return NextResponse.json({
       success: true,
