@@ -1,41 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, ShieldOff, Ban, Eye, ChevronDown, MapPin, Star, CheckCircle, Plus, X, Edit2, Save } from 'lucide-react'
+import { Search, ShieldOff, Ban, Eye, ChevronDown, MapPin, Star, CheckCircle, Plus, X, Save, Edit2 } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-
-type Status = 'ACTIVE' | 'PENDING' | 'SUSPENDED' | 'BANNED'
-
-interface Model {
-  id: string
-  name: string
-  city: string
-  state: string
-  plan: 'FREE' | 'SILVER' | 'GOLD' | 'ELITE'
-  status: Status
-  score: number
-  joinedAt: string
-  isVerified: boolean
-  photoCount: number
-  views: number
-}
-
-const MOCK: Model[] = [
-  { id: '1', name: 'Valentina Silva', city: 'São Paulo', state: 'SP', plan: 'ELITE', status: 'ACTIVE', score: 4.9, joinedAt: '10/01/2026', isVerified: true, photoCount: 22, views: 4820 },
-  { id: '2', name: 'Isabelle Costa', city: 'Rio de Janeiro', state: 'RJ', plan: 'GOLD', status: 'ACTIVE', score: 4.7, joinedAt: '15/01/2026', isVerified: true, photoCount: 18, views: 3210 },
-  { id: '3', name: 'Larissa Mendes', city: 'Curitiba', state: 'PR', plan: 'SILVER', status: 'ACTIVE', score: 4.5, joinedAt: '20/01/2026', isVerified: false, photoCount: 10, views: 1980 },
-  { id: '4', name: 'Júlia Ferreira', city: 'Belo Horizonte', state: 'MG', plan: 'GOLD', status: 'PENDING', score: 0, joinedAt: '24/04/2026', isVerified: false, photoCount: 8, views: 0 },
-  { id: '5', name: 'Melissa Santos', city: 'Salvador', state: 'BA', plan: 'FREE', status: 'SUSPENDED', score: 3.2, joinedAt: '05/02/2026', isVerified: false, photoCount: 5, views: 540 },
-  { id: '6', name: 'Bruna Lima', city: 'Fortaleza', state: 'CE', plan: 'ELITE', status: 'ACTIVE', score: 4.8, joinedAt: '12/02/2026', isVerified: true, photoCount: 28, views: 6100 },
-  { id: '7', name: 'Amanda Rocha', city: 'Porto Alegre', state: 'RS', plan: 'SILVER', status: 'ACTIVE', score: 4.3, joinedAt: '01/03/2026', isVerified: true, photoCount: 12, views: 2300 },
-  { id: '8', name: 'Fernanda Dias', city: 'Brasília', state: 'DF', plan: 'FREE', status: 'BANNED', score: 1.0, joinedAt: '15/02/2026', isVerified: false, photoCount: 3, views: 200 },
-]
+import { useModelsStore, type Status } from '@/lib/models-store'
 
 const STATUS_CONFIG: Record<Status, { label: string; className: string }> = {
   ACTIVE: { label: 'Ativa', className: 'badge-green' },
   PENDING: { label: 'Pendente', className: 'bg-[rgba(232,184,75,0.1)] text-[#E8B84B] border-[rgba(232,184,75,0.2)]' },
-  SUSPENDED: { label: 'Suspensa', className: 'bg-[rgba(255,165,0,0.1)] text-orange-400 border-orange-500/20' },
+  SUSPENDED: { label: 'Suspensa', className: 'bg-orange-500/10 text-orange-400 border-orange-500/20' },
   BANNED: { label: 'Banida', className: 'bg-red-500/10 text-red-400 border-red-500/20' },
 }
 
@@ -49,7 +23,7 @@ const PLAN_COLOR: Record<string, string> = {
 const EMPTY_FORM = { name: '', email: '', whatsapp: '', city: '', state: '', plan: 'FREE' as const }
 
 export default function ModelosPage() {
-  const [models, setModels] = useState<Model[]>(MOCK)
+  const { models, updateStatus, addModel } = useModelsStore()
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | Status>('all')
   const [filterPlan, setFilterPlan] = useState<'all' | string>('all')
@@ -59,7 +33,7 @@ export default function ModelosPage() {
   const [saving, setSaving] = useState(false)
 
   const filtered = models.filter((m) => {
-    const matchSearch = m.name.toLowerCase().includes(search.toLowerCase()) ||
+    const matchSearch = m.stageName.toLowerCase().includes(search.toLowerCase()) ||
       m.city.toLowerCase().includes(search.toLowerCase())
     const matchStatus = filterStatus === 'all' || m.status === filterStatus
     const matchPlan = filterPlan === 'all' || m.plan === filterPlan
@@ -68,29 +42,43 @@ export default function ModelosPage() {
 
   const pendingCount = models.filter((m) => m.status === 'PENDING').length
 
-  const updateStatus = (id: string, status: Status) => {
-    setModels((prev) => prev.map((m) => m.id === id ? { ...m, status } : m))
-    setActionMenu(null)
-  }
-
   const handleCadastro = async () => {
     if (!form.name || !form.email || !form.city || !form.state) return
     setSaving(true)
-    await new Promise((r) => setTimeout(r, 800))
-    const newModel: Model = {
+    await new Promise((r) => setTimeout(r, 600))
+    addModel({
       id: String(Date.now()),
-      name: form.name,
+      stageName: form.name,
+      email: form.email,
+      whatsapp: form.whatsapp,
       city: form.city,
       state: form.state,
+      neighborhood: '',
       plan: form.plan,
       status: 'PENDING',
       score: 0,
       joinedAt: new Date().toLocaleDateString('pt-BR'),
       isVerified: false,
-      photoCount: 0,
       views: 0,
-    }
-    setModels((p) => [newModel, ...p])
+      bio: '',
+      age: 0,
+      height: 0,
+      weight: 0,
+      ethnicity: '',
+      hairStyle: '',
+      hairSize: '',
+      eyeColor: '',
+      hasSilicone: false,
+      hasTattoo: false,
+      smokes: false,
+      serviceType: 'LOCAL',
+      priceMin: 0,
+      priceTable: {},
+      languages: ['Português'],
+      photos: [],
+      services: [],
+      availability: [],
+    })
     setForm(EMPTY_FORM)
     setShowCadastro(false)
     setSaving(false)
@@ -105,13 +93,14 @@ export default function ModelosPage() {
           </h1>
           <p className="text-sm text-[#7A5665]">
             {models.length} modelos cadastradas
-            {pendingCount > 0 && <span className="ml-2 px-2 py-0.5 rounded-full bg-[rgba(232,184,75,0.15)] text-[#E8B84B] text-xs font-semibold">{pendingCount} pendentes</span>}
+            {pendingCount > 0 && (
+              <span className="ml-2 px-2 py-0.5 rounded-full bg-[rgba(232,184,75,0.15)] text-[#E8B84B] text-xs font-semibold">
+                {pendingCount} pendentes
+              </span>
+            )}
           </p>
         </div>
-        <button
-          onClick={() => setShowCadastro(true)}
-          className="btn-primary flex items-center gap-2 text-sm py-2 px-4"
-        >
+        <button onClick={() => setShowCadastro(true)} className="btn-primary flex items-center gap-2 text-sm py-2 px-4">
           <Plus size={15} /> Cadastrar Modelo
         </button>
       </div>
@@ -120,29 +109,16 @@ export default function ModelosPage() {
       <div className="flex flex-wrap gap-3 mb-6">
         <div className="relative flex-1 min-w-52">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7A5665]" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nome ou cidade..."
-            className="input-field pl-9 py-2 text-sm"
-          />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nome ou cidade..." className="input-field pl-9 py-2 text-sm" />
         </div>
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
-          className="input-field py-2 text-sm w-auto pr-8"
-        >
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)} className="input-field py-2 text-sm w-auto pr-8">
           <option value="all">Todos os status</option>
           <option value="ACTIVE">Ativas</option>
           <option value="PENDING">Pendentes</option>
           <option value="SUSPENDED">Suspensas</option>
           <option value="BANNED">Banidas</option>
         </select>
-        <select
-          value={filterPlan}
-          onChange={(e) => setFilterPlan(e.target.value)}
-          className="input-field py-2 text-sm w-auto pr-8"
-        >
+        <select value={filterPlan} onChange={(e) => setFilterPlan(e.target.value)} className="input-field py-2 text-sm w-auto pr-8">
           <option value="all">Todos os planos</option>
           <option value="FREE">Free</option>
           <option value="SILVER">Silver</option>
@@ -170,18 +146,16 @@ export default function ModelosPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-[rgba(233,30,140,0.15)] flex items-center justify-center text-[#E91E8C] font-bold text-sm shrink-0">
-                          {model.name[0]}
+                          {model.stageName[0]}
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <span className="font-medium text-[#F8F0F4]">{model.name}</span>
+                          <span className="font-medium text-[#F8F0F4]">{model.stageName}</span>
                           {model.isVerified && <CheckCircle size={12} className="text-green-400" />}
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="flex items-center gap-1 text-[#BFA0AB]">
-                        <MapPin size={11} />{model.city}, {model.state}
-                      </span>
+                      <span className="flex items-center gap-1 text-[#BFA0AB]"><MapPin size={11} />{model.city}, {model.state}</span>
                     </td>
                     <td className="px-4 py-3">
                       <span className={cn('font-semibold', PLAN_COLOR[model.plan])}>{model.plan}</span>
@@ -194,35 +168,21 @@ export default function ModelosPage() {
                         ? <span className="flex items-center gap-1 text-[#E8B84B]"><Star size={11} className="fill-current" />{model.score}</span>
                         : <span className="text-[#7A5665]">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-[#BFA0AB]">{model.photoCount}</td>
+                    <td className="px-4 py-3 text-[#BFA0AB]">{model.photos.length}</td>
                     <td className="px-4 py-3 text-[#BFA0AB]">{model.views.toLocaleString('pt-BR')}</td>
                     <td className="px-4 py-3 text-[#7A5665]">{model.joinedAt}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
-                        {/* Ver perfil completo */}
-                        <Link
-                          href={`/admin/modelos/${model.id}`}
-                          className="flex items-center gap-1 px-2 py-1.5 rounded text-[#BFA0AB] hover:text-white hover:bg-[#201519] text-xs font-semibold transition-all"
-                          title="Ver detalhes"
-                        >
+                        <Link href={`/admin/modelos/${model.id}`} className="flex items-center gap-1 px-2 py-1.5 rounded text-[#BFA0AB] hover:text-white hover:bg-[#201519] text-xs font-semibold transition-all">
                           <Eye size={13} /> Ver
                         </Link>
-
-                        {/* Ações rápidas */}
                         <div className="relative">
-                          <button
-                            onClick={() => setActionMenu(actionMenu === model.id ? null : model.id)}
-                            className="flex items-center gap-1 px-2 py-1.5 rounded text-[#BFA0AB] hover:text-white hover:bg-[#201519] text-xs font-semibold transition-all"
-                          >
+                          <button onClick={() => setActionMenu(actionMenu === model.id ? null : model.id)} className="flex items-center gap-1 px-2 py-1.5 rounded text-[#BFA0AB] hover:text-white hover:bg-[#201519] text-xs font-semibold transition-all">
                             Ações <ChevronDown size={11} />
                           </button>
                           {actionMenu === model.id && (
                             <div className="absolute right-0 top-full mt-1 z-20 w-44 card border border-[rgba(255,255,255,0.1)] shadow-xl">
-                              <Link
-                                href={`/admin/modelos/${model.id}?tab=editar`}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#BFA0AB] hover:bg-[#201519] transition-colors text-left"
-                                onClick={() => setActionMenu(null)}
-                              >
+                              <Link href={`/admin/modelos/${model.id}?tab=editar`} onClick={() => setActionMenu(null)} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#BFA0AB] hover:bg-[#201519] transition-colors">
                                 <Edit2 size={12} /> Editar Perfil
                               </Link>
                               {model.status !== 'ACTIVE' && (
@@ -251,100 +211,55 @@ export default function ModelosPage() {
             </tbody>
           </table>
         </div>
-        {filtered.length === 0 && (
-          <div className="text-center py-12 text-[#7A5665] text-sm">Nenhuma modelo encontrada</div>
-        )}
+        {filtered.length === 0 && <div className="text-center py-12 text-[#7A5665] text-sm">Nenhuma modelo encontrada</div>}
       </div>
 
-      {/* Modal Cadastrar Modelo */}
+      {/* Modal Cadastrar */}
       {showCadastro && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="card w-full max-w-lg p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-display text-lg font-bold text-white">Cadastrar Nova Modelo</h2>
-              <button onClick={() => setShowCadastro(false)} className="text-[#7A5665] hover:text-white transition-colors">
-                <X size={18} />
-              </button>
+              <button onClick={() => setShowCadastro(false)} className="text-[#7A5665] hover:text-white transition-colors"><X size={18} /></button>
             </div>
-
-            <div className="space-y-4">
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-[#7A5665] mb-1">Nome artístico *</label>
+                <input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} placeholder="Nome que vai aparecer no perfil" className="input-field w-full py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs text-[#7A5665] mb-1">Email *</label>
+                <input type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} placeholder="email@exemplo.com" className="input-field w-full py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs text-[#7A5665] mb-1">WhatsApp</label>
+                <input value={form.whatsapp} onChange={(e) => setForm((p) => ({ ...p, whatsapp: e.target.value }))} placeholder="(11) 99999-9999" className="input-field w-full py-2 text-sm" />
+              </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <label className="block text-xs text-[#7A5665] mb-1">Nome artístico *</label>
-                  <input
-                    value={form.name}
-                    onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                    placeholder="Nome que vai aparecer no perfil"
-                    className="input-field w-full py-2 text-sm"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-xs text-[#7A5665] mb-1">Email *</label>
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                    placeholder="email@exemplo.com"
-                    className="input-field w-full py-2 text-sm"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-xs text-[#7A5665] mb-1">WhatsApp</label>
-                  <input
-                    value={form.whatsapp}
-                    onChange={(e) => setForm((p) => ({ ...p, whatsapp: e.target.value }))}
-                    placeholder="(11) 99999-9999"
-                    className="input-field w-full py-2 text-sm"
-                  />
-                </div>
                 <div>
                   <label className="block text-xs text-[#7A5665] mb-1">Cidade *</label>
-                  <input
-                    value={form.city}
-                    onChange={(e) => setForm((p) => ({ ...p, city: e.target.value }))}
-                    placeholder="São Paulo"
-                    className="input-field w-full py-2 text-sm"
-                  />
+                  <input value={form.city} onChange={(e) => setForm((p) => ({ ...p, city: e.target.value }))} placeholder="São Paulo" className="input-field w-full py-2 text-sm" />
                 </div>
                 <div>
                   <label className="block text-xs text-[#7A5665] mb-1">Estado *</label>
-                  <input
-                    value={form.state}
-                    onChange={(e) => setForm((p) => ({ ...p, state: e.target.value }))}
-                    placeholder="SP"
-                    maxLength={2}
-                    className="input-field w-full py-2 text-sm uppercase"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-xs text-[#7A5665] mb-1">Plano inicial</label>
-                  <select
-                    value={form.plan}
-                    onChange={(e) => setForm((p) => ({ ...p, plan: e.target.value as typeof form.plan }))}
-                    className="input-field w-full py-2 text-sm"
-                  >
-                    <option value="FREE">Free</option>
-                    <option value="SILVER">Silver</option>
-                    <option value="GOLD">Gold</option>
-                    <option value="ELITE">Elite</option>
-                  </select>
+                  <input value={form.state} onChange={(e) => setForm((p) => ({ ...p, state: e.target.value.toUpperCase() }))} placeholder="SP" maxLength={2} className="input-field w-full py-2 text-sm" />
                 </div>
               </div>
-
-              <p className="text-xs text-[#7A5665]">O cadastro será criado com status <strong className="text-[#E8B84B]">Pendente</strong> e a modelo receberá um email para completar o perfil.</p>
-
+              <div>
+                <label className="block text-xs text-[#7A5665] mb-1">Plano inicial</label>
+                <select value={form.plan} onChange={(e) => setForm((p) => ({ ...p, plan: e.target.value as typeof form.plan }))} className="input-field w-full py-2 text-sm">
+                  <option value="FREE">Free</option>
+                  <option value="SILVER">Silver</option>
+                  <option value="GOLD">Gold</option>
+                  <option value="ELITE">Elite</option>
+                </select>
+              </div>
+              <p className="text-xs text-[#7A5665]">Cadastro criado como <strong className="text-[#E8B84B]">Pendente</strong>. Complete o perfil na tela de detalhes.</p>
               <div className="flex gap-3 pt-2">
-                <button
-                  onClick={handleCadastro}
-                  disabled={saving || !form.name || !form.email || !form.city || !form.state}
-                  className="btn-primary flex items-center gap-2 text-sm py-2 px-5 disabled:opacity-50"
-                >
-                  <Save size={14} />
-                  {saving ? 'Cadastrando...' : 'Cadastrar'}
+                <button onClick={handleCadastro} disabled={saving || !form.name || !form.email || !form.city || !form.state} className="btn-primary flex items-center gap-2 text-sm py-2 px-5 disabled:opacity-50">
+                  <Save size={14} />{saving ? 'Cadastrando...' : 'Cadastrar'}
                 </button>
-                <button onClick={() => setShowCadastro(false)} className="px-4 py-2 rounded-lg text-[#7A5665] hover:text-white hover:bg-[#201519] text-sm transition-all">
-                  Cancelar
-                </button>
+                <button onClick={() => setShowCadastro(false)} className="px-4 py-2 rounded-lg text-[#7A5665] hover:text-white hover:bg-[#201519] text-sm transition-all">Cancelar</button>
               </div>
             </div>
           </div>
