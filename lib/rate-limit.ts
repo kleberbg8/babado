@@ -1,59 +1,71 @@
-import { Ratelimit } from '@upstash/ratelimit'
-import { Redis } from '@upstash/redis'
+import { RateLimiterRedis, RateLimiterMemory } from 'rate-limiter-flexible'
 
-// Lazy singleton — only initializes when env vars are present
-let _redis: Redis | null = null
-let _ratelimitStrict: Ratelimit | null = null
-let _ratelimitLoose: Ratelimit | null = null
+let _redisClient: import('ioredis').Redis | null = null
+let _strictLimiter: RateLimiterRedis | RateLimiterMemory | null = null
+let _looseLimiter: RateLimiterRedis | RateLimiterMemory | null = null
 
-function getRedis(): Redis | null {
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+async function getRedisClient() {
+  if (_redisClient) return _redisClient
+  const url = process.env.REDIS_URL
+  if (!url) return null
+  try {
+    const { default: Redis } = await import('ioredis')
+    _redisClient = new Redis(url, { lazyConnect: true, enableReadyCheck: false })
+    return _redisClient
+  } catch {
     return null
   }
-  if (!_redis) {
-    _redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    })
-  }
-  return _redis
 }
 
-// 10 requests / 10s — for auth endpoints (login, register)
-export function getRatelimitStrict(): Ratelimit | null {
-  const redis = getRedis()
-  if (!redis) return null
-  if (!_ratelimitStrict) {
-    _ratelimitStrict = new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(10, '10 s'),
-      analytics: false,
-      prefix: 'rl:strict',
+async function getStrictLimiter() {
+  if (_strictLimiter) return _strictLimiter
+  const redis = await getRedisClient()
+  if (redis) {
+    _strictLimiter = new RateLimiterRedis({
+      storeClient: redis,
+      keyPrefix: 'rl:strict',
+      points: 10,
+      duration: 10,
     })
+  } else {
+    _strictLimiter = new RateLimiterMemory({ keyPrefix: 'rl:strict', points: 10, duration: 10 })
   }
-  return _ratelimitStrict
+  return _strictLimiter
 }
 
-// 60 requests / 60s — for general API endpoints
-export function getRatelimitLoose(): Ratelimit | null {
-  const redis = getRedis()
-  if (!redis) return null
-  if (!_ratelimitLoose) {
-    _ratelimitLoose = new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(60, '60 s'),
-      analytics: false,
-      prefix: 'rl:loose',
+async function getLooseLimiter() {
+  if (_looseLimiter) return _looseLimiter
+  const redis = await getRedisClient()
+  if (redis) {
+    _looseLimiter = new RateLimiterRedis({
+      storeClient: redis,
+      keyPrefix: 'rl:loose',
+      points: 60,
+      duration: 60,
     })
+  } else {
+    _looseLimiter = new RateLimiterMemory({ keyPrefix: 'rl:loose', points: 60, duration: 60 })
   }
-  return _ratelimitLoose
+  return _looseLimiter
 }
+
+// Keep these for backwards compatibility
+export function getRatelimitStrict() { return null }
+export function getRatelimitLoose() { return null }
 
 export async function checkRateLimit(
-  limiter: Ratelimit | null,
+  _limiter: null,
   identifier: string,
 ): Promise<{ allowed: boolean; remaining: number; reset: number }> {
-  if (!limiter) return { allowed: true, remaining: 999, reset: 0 }
-  const { success, remaining, reset } = await limiter.limit(identifier)
-  return { allowed: success, remaining, reset }
+  try {
+    const isStrict = identifier.startsWith('auth:')
+    const limiter = isStrict ? await getStrictLimiter() : await getLooseLimiter()
+    const result = await limiter.consume(identifier)
+    return { allowed: true, remaining: result.remainingPoints ?? 0, reset: result.msBeforeNext ?? 0 }
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'remainingPoints' in err) {
+      return { allowed: false, remaining: 0, reset: (err as { msBeforeNext?: number }).msBeforeNext ?? 0 }
+    }
+    return { allowed: true, remaining: 999, reset: 0 }
+  }
 }
