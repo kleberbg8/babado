@@ -1,12 +1,14 @@
-import { config } from "dotenv"
-import { defineConfig } from "prisma/config"
-
-config({ path: ".env.local" })
+import { defineConfig } from 'prisma/config'
 
 export default defineConfig({
-  schema: "prisma/schema.prisma",
+  schema: './prisma/schema.prisma',
   datasource: {
-    url: process.env.DATABASE_URL,
-    directUrl: process.env.DIRECT_URL,
+    url: () => {
+      const url = process.env.DATABASE_URL || ''
+      if (!url) {
+        throw new Error('DATABASE_URL environment variable is not set')
+      }
+      return url
+    },
   },
 })
